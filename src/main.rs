@@ -2,10 +2,14 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use axum::{
-    extract::{Path, State, Json as PJson}, http::StatusCode, response::{IntoResponse, Json}, routing::{get, post}, Router
+    extract::{Json as PJson, Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Json},
+    routing::{get, post},
+    Router,
 };
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -13,14 +17,13 @@ struct Movie {
     id: String,
     name: String,
     year: u16,
-    was_good: bool
+    was_good: bool,
 }
 
 #[derive(Clone)]
 struct AppState {
     data: Arc<Mutex<HashMap<String, Movie>>>,
 }
-
 
 #[tokio::main]
 async fn main() {
@@ -38,20 +41,14 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_movie(
-    Path(id): Path<String>,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+async fn get_movie(Path(id): Path<String>, State(state): State<AppState>) -> impl IntoResponse {
     match state.data.lock().expect("mutex was poisoned").get(&id) {
         Some(movie) => return (StatusCode::OK, Json(json!(movie))),
-        None => return (StatusCode::NOT_FOUND, Json(json!("movie not found")))
+        None => return (StatusCode::NOT_FOUND, Json(json!("movie not found"))),
     }
 }
 
-async fn create_movie(
-    State(state): State<AppState>,
-    PJson(payload): PJson<Movie>,
-) -> StatusCode {
+async fn create_movie(State(state): State<AppState>, PJson(payload): PJson<Movie>) -> StatusCode {
     let mut s = state.data.lock().expect("mutex was poisoned");
 
     s.insert(payload.id.clone(), payload);
