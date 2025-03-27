@@ -43,8 +43,8 @@ async fn main() {
 
 async fn get_movie(Path(id): Path<String>, State(state): State<AppState>) -> impl IntoResponse {
     match state.data.lock().expect("mutex was poisoned").get(&id) {
-        Some(movie) => return (StatusCode::OK, Json(json!(movie))),
-        None => return (StatusCode::NOT_FOUND, Json(json!("movie not found"))),
+        Some(movie) => (StatusCode::OK, Json(json!(movie))),
+        None => (StatusCode::NOT_FOUND, Json(json!("movie not found"))),
     }
 }
 
