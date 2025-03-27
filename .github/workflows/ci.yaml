@@ -1,0 +1,17 @@
+---
+name: ci
+on:
+  push:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout sources
+        uses: actions/checkout@v4
+      - name: linting and formatting
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy -- -D warnings
+      - name: testing
+        run: cargo test
