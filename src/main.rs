@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use axum::{
+    Router,
     extract::{Json as EJson, Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::{get, post},
-    Router,
 };
 
 use serde::{Deserialize, Serialize};
