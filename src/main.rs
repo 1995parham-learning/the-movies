@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use axum::{
-    extract::{Json as PJson, Path, State},
+    extract::{Json as EJson, Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::{get, post},
@@ -48,7 +48,7 @@ async fn get_movie(Path(id): Path<String>, State(state): State<AppState>) -> imp
     }
 }
 
-async fn create_movie(State(state): State<AppState>, PJson(payload): PJson<Movie>) -> StatusCode {
+async fn create_movie(State(state): State<AppState>, EJson(payload): EJson<Movie>) -> StatusCode {
     let mut s = state.data.lock().expect("mutex was poisoned");
 
     s.insert(payload.id.clone(), payload);
