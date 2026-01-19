@@ -1,24 +1,91 @@
 # The Movies
 
-## Introduction
+A simple REST API for managing movies, built with Rust and Axum.
 
-Create Axum server with the following endpoints:
+## Tech Stack
 
-1. GET `/movie/{id}` - This should return a movie given the ID
-2. POST `/movie` - this should save move in a DB (`HashMap<String, Movie>`). This movie will be sent via a JSON payload.
+- **Rust** (Edition 2024)
+- **Axum** - Web framework
+- **Tokio** - Async runtime
+- **Serde** - Serialization/deserialization
 
-As a bonus: implement a caching layer, so we don't need to make expensive "DB" lookups, etc.
+## API Endpoints
 
-## How to run?
+### Create a Movie
 
-After running the server using `cargo run`, you can create movie as follows:
+```http
+POST /movie
+Content-Type: application/json
 
-```bash
-curl 127.0.0.1:3000/movie -X POST -d '{ "id": "1", "name": "good movie", "year": 2025, "was_good": true }' -H 'Content-Type: application/json'
+{
+  "id": "1",
+  "name": "The Shawshank Redemption",
+  "year": 1994,
+  "was_good": true
+}
 ```
 
-then request them using:
+**Response:** `201 Created`
+
+### Get a Movie
+
+```http
+GET /movie/{id}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": "1",
+  "name": "The Shawshank Redemption",
+  "year": 1994,
+  "was_good": true
+}
+```
+
+**Response (not found):** `404 Not Found`
+
+```json
+"movie not found"
+```
+
+## Running
 
 ```bash
-curl 127.0.0.1:3000/movie/1
+cargo run
 ```
+
+The server starts at `http://127.0.0.1:3000`.
+
+## Development
+
+```bash
+# Check code
+cargo check
+
+# Run linter
+cargo clippy
+
+# Format code
+cargo fmt
+```
+
+## Project Structure
+
+```
+.
+├── src/
+│   └── main.rs      # Application entry point and handlers
+├── api.http         # HTTP client requests for testing
+├── Cargo.toml       # Dependencies and project config
+└── README.md
+```
+
+## Future Improvements
+
+- [ ] Caching layer for expensive lookups
+- [ ] Input validation
+- [ ] Persistent storage (database)
+- [ ] Additional CRUD operations (UPDATE, DELETE, LIST)
+- [ ] Logging and tracing
