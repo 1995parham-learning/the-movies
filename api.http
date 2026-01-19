@@ -1,0 +1,44 @@
+### Movies API
+
+@baseUrl = http://127.0.0.1:3000
+
+
+### Create a movie
+
+POST {{baseUrl}}/movie HTTP/1.1
+Content-Type: application/json
+
+{
+  "id": "1",
+  "name": "The Shawshank Redemption",
+  "was_good": true,
+  "year": 1994
+}
+
+
+### Create another movie
+
+POST {{baseUrl}}/movie HTTP/1.1
+Content-Type: application/json
+
+{
+  "id": "2",
+  "name": "The Godfather",
+  "was_good": true,
+  "year": 1972
+}
+
+
+### Get movie by ID
+
+GET {{baseUrl}}/movie/1 HTTP/1.1
+
+
+### Get another movie
+
+GET {{baseUrl}}/movie/2 HTTP/1.1
+
+
+### Get non-existent movie (returns 404)
+
+GET {{baseUrl}}/movie/999 HTTP/1.1
