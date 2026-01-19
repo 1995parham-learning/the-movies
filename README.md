@@ -70,22 +70,3 @@ cargo clippy
 # Format code
 cargo fmt
 ```
-
-## Project Structure
-
-```
-.
-├── src/
-│   └── main.rs      # Application entry point and handlers
-├── api.http         # HTTP client requests for testing
-├── Cargo.toml       # Dependencies and project config
-└── README.md
-```
-
-## Future Improvements
-
-- [ ] Caching layer for expensive lookups
-- [ ] Input validation
-- [ ] Persistent storage (database)
-- [ ] Additional CRUD operations (UPDATE, DELETE, LIST)
-- [ ] Logging and tracing
