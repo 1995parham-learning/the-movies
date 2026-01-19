@@ -33,7 +33,10 @@ fn app() -> Router {
 
     Router::new()
         .route("/movie", get(list_movies).post(create_movie))
-        .route("/movie/{id}", get(get_movie).put(update_movie).delete(delete_movie))
+        .route(
+            "/movie/{id}",
+            get(get_movie).put(update_movie).delete(delete_movie),
+        )
         .with_state(state)
 }
 
@@ -79,10 +82,7 @@ async fn update_movie(
     (StatusCode::OK, Json(json!(movie)))
 }
 
-async fn delete_movie(
-    Path(id): Path<String>,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+async fn delete_movie(Path(id): Path<String>, State(state): State<AppState>) -> impl IntoResponse {
     let mut s = state.data.write().expect("lock was poisoned");
 
     match s.remove(&id) {
