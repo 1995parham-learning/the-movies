@@ -12,7 +12,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct Movie {
     id: String,
     name: String,
@@ -50,12 +50,15 @@ async fn get_movie(Path(id): Path<String>, State(state): State<AppState>) -> imp
     }
 }
 
-async fn create_movie(State(state): State<AppState>, EJson(payload): EJson<Movie>) -> StatusCode {
+async fn create_movie(
+    State(state): State<AppState>,
+    EJson(payload): EJson<Movie>,
+) -> impl IntoResponse {
     let mut s = state.data.write().expect("lock was poisoned");
 
-    s.insert(payload.id.clone(), payload);
+    s.insert(payload.id.clone(), payload.clone());
 
-    StatusCode::CREATED
+    (StatusCode::CREATED, Json(payload))
 }
 
 #[cfg(test)]
@@ -85,6 +88,13 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let movie: Movie = serde_json::from_slice(&body).unwrap();
+        assert_eq!(movie.id, "1");
+        assert_eq!(movie.name, "Test Movie");
+        assert_eq!(movie.year, 2024);
+        assert!(movie.was_good);
     }
 
     #[tokio::test]
