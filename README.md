@@ -15,6 +15,14 @@ A simple REST API for managing movies, built with Rust and Axum.
 
 ## API Endpoints
 
+| Method | Endpoint      | Description       |
+| ------ | ------------- | ----------------- |
+| GET    | `/movie`      | List all movies   |
+| POST   | `/movie`      | Create a movie    |
+| GET    | `/movie/{id}` | Get a movie by ID |
+| PUT    | `/movie/{id}` | Update a movie    |
+| DELETE | `/movie/{id}` | Delete a movie    |
+
 ### Create a Movie
 
 ```http
@@ -29,7 +37,15 @@ Content-Type: application/json
 }
 ```
 
-**Response:** `201 Created`
+**Response:** `201 Created` with created movie
+
+### List All Movies
+
+```http
+GET /movie
+```
+
+**Response:** `200 OK` with array of movies
 
 ### Get a Movie
 
@@ -37,22 +53,31 @@ Content-Type: application/json
 GET /movie/{id}
 ```
 
-**Response:** `200 OK`
+**Response:** `200 OK` with movie, or `404 Not Found`
 
-```json
+### Update a Movie
+
+```http
+PUT /movie/{id}
+Content-Type: application/json
+
 {
   "id": "1",
-  "name": "The Shawshank Redemption",
+  "name": "Updated Name",
   "year": 1994,
   "was_good": true
 }
 ```
 
-**Response (not found):** `404 Not Found`
+**Response:** `200 OK` with updated movie, or `404 Not Found`
 
-```json
-"movie not found"
+### Delete a Movie
+
+```http
+DELETE /movie/{id}
 ```
+
+**Response:** `204 No Content`, or `404 Not Found`
 
 ## Running
 

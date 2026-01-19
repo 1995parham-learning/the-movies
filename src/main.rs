@@ -6,7 +6,7 @@ use axum::{
     extract::{Json as EJson, Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
-    routing::{get, post},
+    routing::get,
 };
 
 use serde::{Deserialize, Serialize};
@@ -32,8 +32,8 @@ fn app() -> Router {
     };
 
     Router::new()
-        .route("/movie", post(create_movie))
-        .route("/movie/{id}", get(get_movie))
+        .route("/movie", get(list_movies).post(create_movie))
+        .route("/movie/{id}", get(get_movie).put(update_movie).delete(delete_movie))
         .with_state(state)
 }
 
@@ -43,10 +43,51 @@ async fn main() {
     axum::serve(listener, app()).await.unwrap();
 }
 
+async fn list_movies(State(state): State<AppState>) -> impl IntoResponse {
+    let movies: Vec<Movie> = state
+        .data
+        .read()
+        .expect("lock was poisoned")
+        .values()
+        .cloned()
+        .collect();
+
+    Json(movies)
+}
+
 async fn get_movie(Path(id): Path<String>, State(state): State<AppState>) -> impl IntoResponse {
     match state.data.read().expect("lock was poisoned").get(&id) {
         Some(movie) => (StatusCode::OK, Json(json!(movie))),
         None => (StatusCode::NOT_FOUND, Json(json!("movie not found"))),
+    }
+}
+
+async fn update_movie(
+    Path(id): Path<String>,
+    State(state): State<AppState>,
+    EJson(payload): EJson<Movie>,
+) -> impl IntoResponse {
+    let mut s = state.data.write().expect("lock was poisoned");
+
+    if !s.contains_key(&id) {
+        return (StatusCode::NOT_FOUND, Json(json!("movie not found")));
+    }
+
+    let movie = Movie { id, ..payload };
+    s.insert(movie.id.clone(), movie.clone());
+
+    (StatusCode::OK, Json(json!(movie)))
+}
+
+async fn delete_movie(
+    Path(id): Path<String>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let mut s = state.data.write().expect("lock was poisoned");
+
+    match s.remove(&id) {
+        Some(_) => StatusCode::NO_CONTENT,
+        None => StatusCode::NOT_FOUND,
     }
 }
 
@@ -159,5 +200,175 @@ mod tests {
         assert_eq!(movie.name, "The Matrix");
         assert_eq!(movie.year, 1999);
         assert!(movie.was_good);
+    }
+
+    #[tokio::test]
+    async fn list_movies_empty() {
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/movie")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let movies: Vec<Movie> = serde_json::from_slice(&body).unwrap();
+        assert!(movies.is_empty());
+    }
+
+    #[tokio::test]
+    async fn list_movies_with_data() {
+        let app = app();
+
+        // Create a movie first
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/movie")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        r#"{"id":"1","name":"Test Movie","year":2024,"was_good":true}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // List movies
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri("/movie")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let movies: Vec<Movie> = serde_json::from_slice(&body).unwrap();
+        assert_eq!(movies.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn update_movie_success() {
+        let app = app();
+
+        // Create a movie
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/movie")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        r#"{"id":"1","name":"Old Name","year":2020,"was_good":false}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // Update the movie
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/movie/1")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        r#"{"id":"1","name":"New Name","year":2024,"was_good":true}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let movie: Movie = serde_json::from_slice(&body).unwrap();
+        assert_eq!(movie.name, "New Name");
+        assert_eq!(movie.year, 2024);
+        assert!(movie.was_good);
+    }
+
+    #[tokio::test]
+    async fn update_movie_not_found() {
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/movie/999")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        r#"{"id":"999","name":"Test","year":2024,"was_good":true}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn delete_movie_success() {
+        let app = app();
+
+        // Create a movie
+        app.clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/movie")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        r#"{"id":"1","name":"Test","year":2024,"was_good":true}"#,
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        // Delete the movie
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri("/movie/1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+    }
+
+    #[tokio::test]
+    async fn delete_movie_not_found() {
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri("/movie/999")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }
