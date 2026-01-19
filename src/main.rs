@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 
 use axum::{
     Router,
@@ -22,14 +22,14 @@ struct Movie {
 
 #[derive(Clone)]
 struct AppState {
-    data: Arc<Mutex<HashMap<String, Movie>>>,
+    data: Arc<RwLock<HashMap<String, Movie>>>,
 }
 
 #[tokio::main]
 async fn main() {
     let data: HashMap<String, Movie> = HashMap::new();
     let state = AppState {
-        data: Arc::new(Mutex::new(data)),
+        data: Arc::new(RwLock::new(data)),
     };
 
     let app = Router::new()
@@ -42,14 +42,14 @@ async fn main() {
 }
 
 async fn get_movie(Path(id): Path<String>, State(state): State<AppState>) -> impl IntoResponse {
-    match state.data.lock().expect("mutex was poisoned").get(&id) {
+    match state.data.read().expect("lock was poisoned").get(&id) {
         Some(movie) => (StatusCode::OK, Json(json!(movie))),
         None => (StatusCode::NOT_FOUND, Json(json!("movie not found"))),
     }
 }
 
 async fn create_movie(State(state): State<AppState>, EJson(payload): EJson<Movie>) -> StatusCode {
-    let mut s = state.data.lock().expect("mutex was poisoned");
+    let mut s = state.data.write().expect("lock was poisoned");
 
     s.insert(payload.id.clone(), payload);
 
