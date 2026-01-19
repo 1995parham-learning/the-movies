@@ -1,4 +1,8 @@
-# The Movies
+<h1 align="center">The Movies</h1>
+
+<p align="center">
+  <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/1995parham-learning/the-movies/ci.yaml?logo=github&style=for-the-badge">
+</p>
 
 A simple REST API for managing movies, built with Rust and Axum.
 
